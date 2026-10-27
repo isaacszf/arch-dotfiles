@@ -1,0 +1,209 @@
+diff --git a/shell/Sidebar.qml b/shell/Sidebar.qml
+index 0b0f497..bfca08b 100644
+--- a/shell/Sidebar.qml
++++ b/shell/Sidebar.qml
+@@ -6,6 +6,7 @@ import "bluetooth" as Bluetooth
+ import "settings" as Settings
+ import "wifi" as Wifi
+ import "calendar" as Calendar
++import "temperature" as Temperature
+ import "media" as Media
+ import "minimap" as Minimap
+ import "notifications" as Notifications
+@@ -99,7 +100,7 @@ PanelWindow {
+   onHeightChanged: cardBlur.changed()
+   Region {
+     id: cardBlur
+-    regions: [timeCard.blurRegion, workspacesCard.blurRegion, mediaCard.blurRegion,
++    regions: [timeCard.blurRegion, tempCard.blurRegion, workspacesCard.blurRegion, mediaCard.blurRegion,
+       notificationCard.blurRegion, installsCard.blurRegion, controls.blurRegion]
+   }
+   // Keep compositor resizes out of the card animation; only the input area shrinks.
+@@ -151,13 +152,19 @@ PanelWindow {
+       onBatteryClicked: root.togglePopup("battery")
+     }
+ 
++    Temperature.Card {
++      id: tempCard
++      width: root.cardWidth
++      collapseProgress: root.collapseProgress
++    }
++
+     Minimap.Map {
+       id: workspacesCard
+       screen: root.screen
+       collapseProgress: root.collapseProgress
+       maximumHeight: Math.max(64,
+           bottomStack.y - Theme.sidebarCardGap - mainStack.y
+-          - timeCard.height - mediaCard.height - notificationCard.height - installsCard.height
++          - timeCard.height - (tempCard.visible ? tempCard.height + Theme.sidebarCardGap : 0) - mediaCard.height - notificationCard.height - installsCard.height
+           - (keyboardFeedback.visible ? keyboardFeedback.height + Theme.sidebarCardGap : 0)
+           - Theme.sidebarCardGap * (2 + (mediaCard.visible ? 1 : 0) + (installsCard.visible ? 1 : 0)))
+       onFocusRequested: index => NiriMsg.focusWorkspace(index)
+diff --git a/shell/temperature/Card.qml b/shell/temperature/Card.qml
+new file mode 100644
+index 0000000..19304a7
+--- /dev/null
++++ b/shell/temperature/Card.qml
+@@ -0,0 +1,161 @@
++import QtQuick
++import Quickshell
++import Quickshell.Io
++import ".." as Shell
++
++// CPU (k10temp Tctl) and GPU (amdgpu edge) temperatures, read from hwmon every 3 s.
++// Thresholds match the i3blocks temperature block: yellow from 70°, red from 90°.
++Shell.Card {
++  id: root
++
++  property real collapseProgress: 0
++  property int warnAt: 70
++  property int critAt: 90
++  property real cpu: NaN
++  property real gpu: NaN
++  property string cpuPath: ""
++  property string gpuPath: ""
++  readonly property real widthProgress: Shell.Theme.collapseWidth(collapseProgress)
++  readonly property real heightProgress: Shell.Theme.collapseHeight(collapseProgress)
++  readonly property real expandedOpacity: collapseProgress < 0.56 ? 1 : 0
++  readonly property real collapsedProgress: collapseProgress >= 0.56 ? 1 : 0
++
++  implicitWidth: Shell.Theme.lerp(Shell.Theme.sidebarCardExpandedWidth,
++      Shell.Theme.sidebarCardCollapsedWidth, widthProgress)
++  implicitHeight: Shell.Theme.lerp(48, 56, heightProgress)
++  radius: Shell.Theme.lerp(12, Shell.Theme.sidebarCardRadius, widthProgress)
++  visible: cpuPath !== "" || gpuPath !== ""
++
++  function tempColor(value) {
++    return value >= critAt ? "#FD6164" : value >= warnAt ? "#FFDC67" : Shell.Theme.sidebarV3Foreground;
++  }
++  function format(value, precise) {
++    if (isNaN(value)) return "–";
++    return precise ? value.toFixed(1) + "°C" : Math.round(value) + "°";
++  }
++
++  // hwmon numbering can change between boots, so look the chips up by name.
++  Process {
++    running: true
++    command: ["sh", "-c", "grep -H . /sys/class/hwmon/hwmon*/name"]
++    stdout: SplitParser {
++      onRead: line => {
++        const split = line.lastIndexOf(":");
++        const dir = line.slice(0, split).replace(/\/name$/, "");
++        const name = line.slice(split + 1).trim();
++        if (name === "k10temp") root.cpuPath = dir + "/temp1_input";
++        else if (name === "amdgpu") root.gpuPath = dir + "/temp1_input";
++      }
++    }
++  }
++
++  FileView {
++    id: cpuFile
++    path: root.cpuPath
++    printErrors: false
++    onLoaded: root.cpu = parseInt(text()) / 1000
++  }
++
++  FileView {
++    id: gpuFile
++    path: root.gpuPath
++    printErrors: false
++    onLoaded: root.gpu = parseInt(text()) / 1000
++  }
++
++  Timer {
++    interval: 3000
++    repeat: true
++    running: root.visible
++    triggeredOnStart: true
++    onTriggered: {
++      if (root.cpuPath !== "") cpuFile.reload();
++      if (root.gpuPath !== "") gpuFile.reload();
++    }
++  }
++
++  component Reading: Item {
++    id: reading
++    required property string label
++    required property real value
++    width: 66
++    height: 32
++
++    Text {
++      y: 0
++      width: parent.width
++      text: reading.label
++      color: Shell.Theme.sidebarV3Foreground
++      opacity: 0.5
++      font.family: Shell.Theme.fontFamily
++      font.weight: Font.Medium
++      font.pixelSize: 10
++      font.letterSpacing: 0.6
++      horizontalAlignment: Text.AlignHCenter
++    }
++
++    Text {
++      y: 13
++      width: parent.width
++      text: root.format(reading.value, true)
++      color: root.tempColor(reading.value)
++      font.family: Shell.Theme.fontFamily
++      font.weight: Font.Normal
++      font.pixelSize: 15
++      font.features: ({ "tnum": 1 })
++      horizontalAlignment: Text.AlignHCenter
++      Behavior on color { ColorAnimation { duration: 200 } }
++    }
++  }
++
++  Item {
++    id: expandedContent
++    width: Shell.Theme.sidebarCardExpandedWidth
++    height: root.height
++    opacity: root.expandedOpacity
++    visible: opacity > 0.001
++
++    Reading { x: 8; y: 8; label: "CPU"; value: root.cpu }
++
++    Rectangle {
++      x: Shell.Theme.sidebarCardExpandedWidth / 2
++      y: 12
++      width: 1
++      height: 24
++      color: Shell.Theme.daylight ? Shell.Theme.sidebarInnerOutline : Shell.Theme.sidebarV3Divider
++    }
++
++    Reading { x: Shell.Theme.sidebarCardExpandedWidth - 8 - width; y: 8; label: "GPU"; value: root.gpu }
++  }
++
++  Item {
++    id: collapsedContent
++    width: Shell.Theme.sidebarCardCollapsedWidth
++    height: parent.height
++    visible: root.collapsedProgress > 0.001
++
++    FontMetrics {
++      id: compactMetrics
++      font.family: Shell.Theme.plexFontFamily
++      font.pixelSize: 13
++    }
++
++    Repeater {
++      model: [root.cpu, root.gpu]
++      delegate: Text {
++        required property real modelData
++        required property int index
++        x: 0
++        y: 14 + index * 17 + compactMetrics.capitalHeight - baselineOffset
++        width: collapsedContent.width
++        text: root.format(modelData, false)
++        color: root.tempColor(modelData)
++        opacity: Shell.Theme.ramp(root.collapsedProgress, index * 0.12, 0.32 + index * 0.12)
++        font.family: Shell.Theme.plexFontFamily
++        font.weight: Font.Normal
++        font.pixelSize: 13
++        horizontalAlignment: Text.AlignHCenter
++      }
++    }
++  }
++}

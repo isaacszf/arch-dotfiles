@@ -1,0 +1,6 @@
+// ────────────── Startup Applications ──────────────
+// https://github.com/YaLTeR/niri/wiki/Configuration:-Miscellaneous#spawn-sh-at-startup
+
+// spawn-sh-at-startup "kitty"
+// Auto-lock after 10 min, monitors off after 11 min (Mod+Shift+M toggles).
+spawn-sh-at-startup "~/.config/niri/scripts/idle.sh start"

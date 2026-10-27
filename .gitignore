@@ -1,0 +1,7 @@
+# makepkg output
+pkgbuild/*/src/
+pkgbuild/*/pkg/
+pkgbuild/*/pond-interface/
+pkgbuild/*/*.pkg.tar.*
+pkgbuild/*/*.ttf
+pkgbuild/*/OFL-*.txt

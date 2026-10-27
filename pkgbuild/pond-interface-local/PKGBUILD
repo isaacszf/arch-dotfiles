@@ -1,0 +1,94 @@
+# Local build of Butterfly's Pond desktop layer on plain Arch.
+# Pinned to a reviewed commit; no Butterfly pacman repo or signing key involved.
+# Skips GRUB, Plymouth and the SDDM greeter config. The proprietary "Pond Gramercy" font is not included.
+
+pkgname=pond-interface-local
+_commit=df65f7e6134269dd2a67ea0f4525ff9db76942e1
+_fontscommit=4c1db3aec83c67dd223dd82a68c039cab30917a9
+pkgver=r0.df65f7e
+pkgrel=3
+pkgdesc="Pond shell, lock screen and niri config from bflycomputer/pond-interface (local build)"
+arch=('x86_64')
+url="https://github.com/bflycomputer/pond-interface"
+license=('BSD-3-Clause' 'OFL-1.1')
+depends=(
+  niri quickshell xwayland-satellite
+  qt6-base qt6-declarative qt6-svg qt6-shadertools networkmanager-qt
+  python python-gobject
+  zenity wl-clipboard brightnessctl fuzzel
+  capitaine-cursors ttf-ibm-plex
+  xdg-desktop-portal-gnome xdg-desktop-portal-gtk polkit-gnome
+)
+optdepends=('ddcutil: monitor brightness over DDC/CI')
+makedepends=(cmake git)
+source=(
+  "pond-interface::git+${url}.git#commit=${_commit}"
+  "Onest.ttf::https://raw.githubusercontent.com/google/fonts/${_fontscommit}/ofl/onest/Onest%5Bwght%5D.ttf"
+  "OFL-Onest.txt::https://raw.githubusercontent.com/google/fonts/${_fontscommit}/ofl/onest/OFL.txt"
+  sync-theme-icons.patch
+  sidebar-temperature.patch
+  fuzzel-launcher.patch
+)
+sha256sums=('SKIP'
+            '966c5c29b4755da84b6854d5c21dd4eaa2420225d0e9874de602de176d4a9f31'
+            '071195d8806e226faeee60259c28ca67b458227af5195a73f5cfcab06e3003bc'
+            '961e4df4c51911f53967ed447eb427821e2ca86ddaa65aa9c2a4611a7f0010f6'
+            'e251820de4d2d227f30a996db9d064d0f3153cd31d256ab3dc0d786c797e09aa'
+            '46a74076b34d50d58b4cf5c1d08f652ef372aa047c928ced622d2d014953bd82')
+
+prepare() {
+  # Quickshell's image://icon provider calls QIcon::pixmap() off the GUI thread when an Image is
+  # asynchronous, racing Qt's icon cache and aborting in QPixmap::scaled (pure virtual call).
+  patch -d pond-interface -Np1 < sync-theme-icons.patch
+  # Local additions: CPU/GPU temperature card under the clock, sidebar "+" opens fuzzel.
+  patch -d pond-interface -Np1 < sidebar-temperature.patch
+  patch -d pond-interface -Np1 < fuzzel-launcher.patch
+}
+
+build() {
+  # Copied by hand in package(), so bake the $ORIGIN INSTALL_RPATH in at build time.
+  cmake -B build-wifi -S pond-interface -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+    -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON
+  cmake --build build-wifi
+  cmake -B build-shot -S pond-interface/screenshot/native -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+  cmake --build build-shot
+}
+
+package() {
+  local share="$pkgdir/usr/share/pond-interface"
+  local qml="$pkgdir/usr/lib/qt6/qml/Pond"
+
+  install -d "$share"
+  cp -r pond-interface/{shell,lockscreen,wallpaper,screenshot,config} "$share/"
+  rm -rf "$share/screenshot/native"
+  find "$share" -name __pycache__ -type d -prune -exec rm -rf {} +
+
+  # Native QML modules. The WifiStatus project has no install rule, so copy the module dir
+  # plus its backing library next to the plugin (the plugin's RPATH is $ORIGIN).
+  install -d "$qml/WifiStatus"
+  cp -a build-wifi/Pond/WifiStatus/. "$qml/WifiStatus/"
+  rm -f "$qml/WifiStatus/"*.qrc  # build-time resource map, holds $srcdir paths
+  find build-wifi -maxdepth 1 -name 'libpond_wifi_status*.so*' -exec cp -a {} "$qml/WifiStatus/" \;
+  DESTDIR="$pkgdir" cmake --install build-shot
+
+  # Pure-QML modules live in the share tree; expose them on Qt's default import path.
+  ln -s /usr/share/pond-interface/wallpaper "$qml/Wallpaper"
+  ln -s /usr/share/pond-interface/wallpaper/daylight "$qml/Daylight"
+  # Pond/Screenshot already exists as a directory (it holds Native/), so link its files instead.
+  for f in qmldir State.qml Preview.qml clipboard.py assets; do
+    ln -s "/usr/share/pond-interface/screenshot/$f" "$qml/Screenshot/$f"
+  done
+
+  # `qs -c pond-shell` looks in $XDG_CONFIG_DIRS/quickshell/.
+  install -d "$pkgdir/etc/xdg/quickshell"
+  ln -s /usr/share/pond-interface/shell "$pkgdir/etc/xdg/quickshell/pond-shell"
+
+  install -Dm644 pond-interface/config/applications/pond-manual.desktop \
+    "$pkgdir/usr/share/applications/pond-manual.desktop"
+  install -Dm644 pond-interface/config/glib-2.0/90-pond.gschema.override \
+    "$pkgdir/usr/share/glib-2.0/schemas/90-pond.gschema.override"
+
+  install -Dm644 Onest.ttf "$pkgdir/usr/share/fonts/TTF/Onest.ttf"
+  install -Dm644 OFL-Onest.txt "$pkgdir/usr/share/licenses/$pkgname/OFL-Onest.txt"
+  install -Dm644 pond-interface/LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

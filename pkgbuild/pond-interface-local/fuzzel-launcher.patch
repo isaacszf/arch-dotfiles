@@ -1,0 +1,13 @@
+diff --git a/shell/NiriMsg.qml b/shell/NiriMsg.qml
+index 4365164..58fe19e 100644
+--- a/shell/NiriMsg.qml
++++ b/shell/NiriMsg.qml
+@@ -38,7 +38,7 @@ Singleton {
+     const workspace = workspaces.find(workspace => workspace.id === workspaceId);
+     if (!workspace) return;
+     _move(workspace.isFocused ? [] : [{ FocusWorkspace: { reference: { Id: workspaceId } } }], success => {
+-      if (success) Quickshell.execDetached(["vicinae", "open"]);
++      if (success) Quickshell.execDetached(["fuzzel"]);
+     });
+   }
+ 

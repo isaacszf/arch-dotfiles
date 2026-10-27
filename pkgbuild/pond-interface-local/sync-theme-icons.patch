@@ -1,0 +1,52 @@
+diff --git a/shell/minimap/Map.qml b/shell/minimap/Map.qml
+index cce2709..d5d9968 100644
+--- a/shell/minimap/Map.qml
++++ b/shell/minimap/Map.qml
+@@ -693,7 +693,7 @@ Shell.Card {
+                   width: 32
+                   height: 32
+                   visible: false
+-                  asynchronous: true
++                  asynchronous: false
+                   source: Quickshell.iconPath(collapsedWorkspace.windowItems[appDot.index].iconName,
+                       "application-x-executable")
+                   readonly property bool ready: status === Image.Ready && Boolean(Window.window?.visible)
+diff --git a/shell/minimap/WindowIcon.qml b/shell/minimap/WindowIcon.qml
+index 9d6aede..9677392 100644
+--- a/shell/minimap/WindowIcon.qml
++++ b/shell/minimap/WindowIcon.qml
+@@ -61,7 +61,7 @@ Item {
+     width: Shell.Theme.workspaceIconSize * (root.lifted ? Shell.Theme.workspaceDragGlyphScale : 1)
+     height: width
+     source: root.windowData.iconSource || ""
+-    asynchronous: true
++    asynchronous: false
+     smooth: true
+     opacity: Shell.Theme.daylight || root.hovered || root.lifted ? 1.0 : 0.9
+ 
+diff --git a/shell/notifications/Card.qml b/shell/notifications/Card.qml
+index 9bade71..9d4cbb8 100644
+--- a/shell/notifications/Card.qml
++++ b/shell/notifications/Card.qml
+@@ -59,7 +59,7 @@ Item {
+     width: root.iconSize
+     height: width
+     source: Notifications.State.iconSource(root.notification || ({}))
+-    asynchronous: true
++    asynchronous: false
+     smooth: true
+   }
+ 
+diff --git a/shell/notifications/SidebarCard.qml b/shell/notifications/SidebarCard.qml
+index 73add93..fa59d71 100644
+--- a/shell/notifications/SidebarCard.qml
++++ b/shell/notifications/SidebarCard.qml
+@@ -96,7 +96,7 @@ Item {
+             width: Notifications.Style.summaryIconSize
+             height: Notifications.Style.summaryIconSize
+             source: modelData.iconSource || ""
+-            asynchronous: true
++            asynchronous: false
+             smooth: true
+             opacity: index === 0 ? 1 : Notifications.Style.secondaryIconOpacity
+           }

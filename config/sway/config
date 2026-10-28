@@ -19,8 +19,8 @@ output DP-2     mode 1920x1080@60Hz  position 1920 0
 exec ~/.config/sway/scripts/idle.sh start
 exec nm-applet --indicator
 exec dunst
-exec /usr/bin/brave
-# Sway has no append_layout, so the ws1.json layout is not restored.
+# Opens Brave x2, Discord and kitty in the ws1.json layout (sway has no append_layout)
+exec ~/.config/sway/scripts/ws1_layout.py
 
 # ── Volume / Media Keys ────────────────────────────────────────────────────
 set $refresh_i3status killall -SIGUSR1 i3status

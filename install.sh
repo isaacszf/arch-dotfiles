@@ -40,7 +40,7 @@ install_niri() {
 install_sway() {
     backup "$CONFIG/sway" sway
     cp -r "$REPO/config/sway" "$CONFIG/sway"
-    chmod +x "$CONFIG/sway/scripts/"*.sh
+    chmod +x "$CONFIG/sway/scripts/"*
     echo "sway installed. Check it with: sway -C"
 }
 

@@ -1,4 +1,4 @@
-# dotfiles-niri
+# arch-dotfiles
 
 My desktops on plain Arch Linux: niri (the main one), sway, and the i3 setup both were ported from. The niri desktop uses the shell, lock screen and wallpaper from [Pond](https://github.com/bflycomputer/pond-interface), the desktop made by Butterfly. I build it locally from a pinned commit instead of installing the Pond distro, so there's no Butterfly pacman repo or signing key involved.
 

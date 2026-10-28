@@ -1,0 +1,105 @@
+diff --git a/temperature/temperature b/temperature/temperature
+index 2170f10..603cff0 100755
+--- a/temperature/temperature
++++ b/temperature/temperature
+@@ -27,42 +27,76 @@ binmode(STDOUT, ":utf8");
+ # default values
+ my $t_warn = $ENV{T_WARN} || 70;
+ my $t_crit = $ENV{T_CRIT} || 90;
+-my $chip = $ENV{SENSOR_CHIP} || "";
+-my $temperature = -9999;
++
++# chips and the raw feature to read from `sensors -u`
++my $cpu_chip  = $ENV{CPU_CHIP}  || "k10temp-*";
++my $gpu_chip  = $ENV{GPU_CHIP}  || "amdgpu-*";
++my $cpu_input = $ENV{CPU_INPUT} || "temp1_input";   # k10temp: Tctl
++my $gpu_input = $ENV{GPU_INPUT} || "temp1_input";   # amdgpu:  edge
+ 
+ sub help {
+-    print "Usage: temperature [-w <warning>] [-c <critical>] [--chip <chip>]\n";
+-    print "-w <percent>: warning threshold to become yellow\n";
+-    print "-c <percent>: critical threshold to become red\n";
+-    print "--chip <chip>: sensor chip\n";
++    print "Usage: temperature [-w <warning>] [-c <critical>]\n";
++    print "                   [--cpu-chip <chip>] [--gpu-chip <chip>]\n";
++    print "                   [--cpu-input <feature>] [--gpu-input <feature>]\n";
++    print "-w <degrees>: warning threshold to become yellow\n";
++    print "-c <degrees>: critical threshold to become red\n";
++    print "--cpu-chip / --gpu-chip: sensor chip (wildcards allowed)\n";
++    print "--cpu-input / --gpu-input: raw feature name, e.g. temp1_input\n";
+     exit 0;
+ }
+ 
+-GetOptions("help|h" => \&help,
+-           "w=i"    => \$t_warn,
+-           "c=i"    => \$t_crit,
+-           "chip=s" => \$chip);
+-
+-# Get chip temperature
+-open (SENSORS, "sensors -u $chip |") or die;
+-while (<SENSORS>) {
+-    if (/^\s+temp1_input:\s+[\+]*([\-]*\d+\.\d)/) {
+-        $temperature = $1;
+-        last;
++GetOptions("help|h"      => \&help,
++           "w=i"         => \$t_warn,
++           "c=i"         => \$t_crit,
++           "cpu-chip=s"  => \$cpu_chip,
++           "gpu-chip=s"  => \$gpu_chip,
++           "cpu-input=s" => \$cpu_input,
++           "gpu-input=s" => \$gpu_input);
++
++# Read one temperature from a given chip
++sub read_temp {
++    my ($chip, $input) = @_;
++    open(my $sensors, '-|', 'sensors', '-u', $chip) or return undef;
++    my $temp;
++    while (my $line = <$sensors>) {
++        if ($line =~ /^\s+\Q$input\E:\s*([-+]?\d+(?:\.\d+)?)/) {
++            $temp = $1;
++            last;
++        }
+     }
++    close($sensors);
++    return $temp;
+ }
+-close(SENSORS);
+ 
+-$temperature eq -9999 and die 'Cannot find temperature';
++my $cpu = read_temp($cpu_chip, $cpu_input);
++my $gpu = read_temp($gpu_chip, $gpu_input);
+ 
+-# Print short_text, full_text
+-print "$temperature°C\n" x2;
++(defined $cpu or defined $gpu) or die "Cannot find temperature\n";
++
++# Print full_text, short_text
++my @full  = ();
++my @short = ();
++if (defined $cpu) {
++    push @full,  sprintf("CPU %.1f°C", $cpu);
++    push @short, sprintf("%.0f°", $cpu);
++}
++if (defined $gpu) {
++    push @full,  sprintf("GPU %.1f°C", $gpu);
++    push @short, sprintf("%.0f°", $gpu);
++}
++print join(" ", @full),  "\n";
++print join(" ", @short), "\n";
++
++# Print color, if needed (based on the hottest of the two)
++my $max = -9999;
++for my $t ($cpu, $gpu) {
++    $max = $t if defined $t && $t > $max;
++}
+ 
+-# Print color, if needed
+-if ($temperature >= $t_crit) {
++if ($max >= $t_crit) {
+     print "#FF0000\n";
+     exit 33;
+-} elsif ($temperature >= $t_warn) {
++} elsif ($max >= $t_warn) {
+     print "#FFFC00\n";
+ }
+ 

@@ -33,6 +33,7 @@ binds {
     // ─── Personal (ported from i3) ───
     Mod+Shift+B                         hotkey-overlay-title="Toggle CPU Boost" { spawn-sh "~/.config/niri/scripts/toggle_cpu_boost.sh"; }
     Mod+Shift+M                         hotkey-overlay-title="Toggle Monitor Sleep / Auto-lock" { spawn-sh "~/.config/niri/scripts/idle.sh toggle"; }
+    Print                               hotkey-overlay-title="Screenshot (Flameshot)" { spawn "flameshot" "gui"; }
 
     // ─── Window Movement and Focus ───
     Mod+Q                               { close-window; }

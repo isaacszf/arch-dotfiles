@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rebuild the i3 ws1.json layout on sway, which has no append_layout.
 
-    ws1_layout.py [workspace]     (default: 1)
+    ws1_layout.py [--adopt] [workspace]     (default: 1)
 
 Opens Brave, a second Brave window, Discord and kitty, waits for their
 windows, then arranges them:
@@ -14,6 +14,8 @@ windows, then arranges them:
     +--------------+-----------------+
 
 Discord is single-instance, so an already open Discord window is reused.
+With --adopt, matching windows already on the workspace are used too, and
+only the missing ones are opened. Use it to re-apply the layout.
 """
 import json
 import subprocess
@@ -66,13 +68,17 @@ def matches(win, app_id, ignore):
     return win.get("app_id") == app_id and (win.get("name") or "") not in ignore and win.get("name")
 
 
-def acquire():
+def acquire(ws, adopt):
     """Open (or reuse) one window per slot. Returns {mark: con_id}."""
-    before = {w["id"] for w in windows()}
+    t = tree()
+    before = {w["id"] for w in windows(t)}
+    hit = find(t, lambda n: n["type"] == "workspace" and n.get("num") == int(ws))
+    on_ws = list(windows(hit[0])) if hit else []
     got = {}
     for mark, app_id, cmd, reuse, ignore in SLOTS:
-        if reuse:
-            for w in windows():
+        pool = list(windows(t)) if reuse else on_ws if adopt else []
+        if pool:
+            for w in pool:
                 if matches(w, app_id, ignore) and w["id"] not in got.values():
                     got[mark] = w["id"]
                     break
@@ -96,8 +102,12 @@ def acquire():
 
 def arrange(ws, got):
     m = {k: MARK_PREFIX + k for k in got}
+    # Park the windows elsewhere first so any containers they were in on the
+    # target workspace disappear, and they come back as plain siblings.
     for mark, con_id in got.items():
-        sway(f'[con_id={con_id}] mark --add {m[mark]}, floating disable, move container to workspace number {ws}')
+        sway(f'[con_id={con_id}] mark --add {m[mark]}, floating disable, move container to workspace {MARK_PREFIX}tmp')
+    for mark in got:
+        sway(f'[con_mark={m[mark]}] move container to workspace number {ws}')
 
     # Right column: splitv holding a tabbed [side, discord] over a tabbed [term].
     # Sway only wraps a window in a new container when it has siblings,
@@ -128,8 +138,11 @@ def arrange(ws, got):
         sway(f'[con_mark={mark}] unmark {mark}')
 
 
-def main(ws="1"):
-    got = acquire()
+def main(*args):
+    adopt = "--adopt" in args
+    rest = [a for a in args if a != "--adopt"]
+    ws = rest[0] if rest else "1"
+    got = acquire(ws, adopt)
     missing = [s[0] for s in SLOTS if s[0] not in got]
     if missing:
         notify(f"Timed out waiting for: {', '.join(missing)}. Layout not applied.")
@@ -140,4 +153,4 @@ def main(ws="1"):
 
 
 if __name__ == "__main__":
-    sys.exit(main(*sys.argv[1:2]))
+    sys.exit(main(*sys.argv[1:]))

@@ -68,7 +68,7 @@ Same keys, colors and bar as the i3 config. What differs:
 - `scripts/idle.sh` replaces xss-lock and i3lock: swaylock and monitors off after 10 min, lock before suspend. `Mod+Shift+M` toggles it.
 - `Mod+Shift+R` reloads, since sway has no in-place restart.
 - `Shift+Print` takes a region screenshot to the clipboard with grim and slurp, in case flameshot misbehaves.
-- Sway has no `append_layout`, so `scripts/ws1_layout.py` rebuilds the `ws1.json` layout at login instead: it opens Brave twice, Discord and kitty, then arranges them (Brave tabbed on the left at 66%; tabbed Brave and Discord over tabbed kitty on the right). It reuses Discord if it's already open. Run it by hand with a workspace number to rebuild elsewhere.
+- Sway has no `append_layout`, so `scripts/ws1_layout.py` rebuilds the `ws1.json` layout at login instead: it opens Brave twice, Discord and kitty, then arranges them (Brave tabbed on the left at 66%; tabbed Brave and Discord over tabbed kitty on the right). It reuses Discord if it's already open. Run it by hand with a workspace number to rebuild elsewhere, or with `--adopt` to re-apply the layout using the windows already on that workspace.
 - The bar uses the i3blocks setup from `config/i3`, so install that too.
 
 ### i3

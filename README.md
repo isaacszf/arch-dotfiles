@@ -1,6 +1,6 @@
 # arch-dotfiles
 
-My desktops on plain Arch Linux: niri (the main one), sway, and the i3 setup both were ported from. The niri desktop uses the shell, lock screen and wallpaper from [Pond](https://github.com/bflycomputer/pond-interface), the desktop made by Butterfly. I build it locally from a pinned commit instead of installing the Pond distro, so there's no Butterfly pacman repo or signing key involved.
+My desktops on plain Arch Linux: niri (the main one) and the i3 setup it was ported from. The niri desktop uses the shell, lock screen and wallpaper from [Pond](https://github.com/bflycomputer/pond-interface), the desktop made by Butterfly. I build it locally from a pinned commit instead of installing the Pond distro, so there's no Butterfly pacman repo or signing key involved.
 
 ## What's here
 
@@ -8,7 +8,6 @@ My desktops on plain Arch Linux: niri (the main one), sway, and the i3 setup bot
 pkgbuild/pond-interface-local/   PKGBUILD + patches for Pond's desktop layer
 config/niri/                     niri config (personal settings in cfg/, helper scripts in scripts/)
 config/fuzzel/                   fuzzel launcher theme, styled like Pond's sidebar cards
-config/sway/                     sway config, a Wayland port of the i3 one (scripts in scripts/)
 config/i3/                       i3 config, i3blocks bar, layout and helper scripts
 install.sh                       copies the configs into ~/.config (backs up what's there)
 ```
@@ -36,7 +35,7 @@ install.sh                       copies the configs into ~/.config (backs up wha
 
 ## Install
 
-`./install.sh` installs all three. Name the ones you want to install only those, e.g. `./install.sh sway i3`.
+`./install.sh` installs both. Name one to install only that, e.g. `./install.sh i3`.
 
 ### niri
 
@@ -48,28 +47,10 @@ install.sh                       copies the configs into ~/.config (backs up wha
    ```
 2. Copy the configs:
    ```sh
-   ./install.sh
+   ./install.sh niri
    niri validate
    ```
 3. Pick **niri** in your display manager, or run `niri-session` from a TTY.
-
-### sway
-
-```sh
-sudo pacman -S --needed sway swaylock swayidle wmenu grim slurp xdg-desktop-portal-wlr i3blocks dunst network-manager-applet flameshot
-./install.sh sway
-sway -C
-```
-
-Same keys, colors and bar as the i3 config. What differs:
-
-- Monitors are `output` lines instead of `monitors_setup.sh`. Wayland names differ from xrandr: `HDMI-A-0` is `HDMI-A-1`, and `DisplayPort-1` should be `DP-2`. Check with `swaymsg -t get_outputs`.
-- Launcher is `wmenu-run` instead of `dmenu_run`.
-- `scripts/idle.sh` replaces xss-lock and i3lock: swaylock and monitors off after 10 min, lock before suspend. `Mod+Shift+M` toggles it.
-- `Mod+Shift+R` reloads, since sway has no in-place restart.
-- `Shift+Print` takes a region screenshot to the clipboard with grim and slurp, in case flameshot misbehaves.
-- Sway has no `append_layout`, so `scripts/ws1_layout.py` rebuilds the `ws1.json` layout at login instead: it opens Brave twice, Discord and kitty, then arranges them (Brave tabbed on the left at 66%; tabbed Brave and Discord over tabbed kitty on the right). It reuses Discord if it's already open. Run it by hand with a workspace number to rebuild elsewhere, or with `--adopt` to re-apply the layout using the windows already on that workspace.
-- The bar uses the i3blocks setup from `config/i3`, so install that too.
 
 ### i3
 
@@ -83,7 +64,7 @@ The bar runs scripts from [i3blocks-contrib](https://github.com/vivien/i3blocks-
 
 ### Things you'll probably want to change
 
-- `config/niri/cfg/display.kdl`: my monitor is `HDMI-A-1` at 1920x1080@144. Run `niri msg outputs` for yours. The sway config and `config/i3/scripts/monitors_setup/monitors_setup.sh` hard-code the same monitors.
+- `config/niri/cfg/display.kdl`: my monitor is `HDMI-A-1` at 1920x1080@144. Run `niri msg outputs` for yours. `config/i3/scripts/monitors_setup/monitors_setup.sh` hard-codes the same monitors.
 - `config/niri/cfg/input.kdl`: keyboard layout is `br` (`abnt2`).
 - `config/niri/cfg/misc.kdl`: the cursor theme is `aero-mini`, which isn't packaged. Change it or remove that block to use Pond's `capitaine-cursors`.
 - The temperature card assumes an AMD CPU (`k10temp`) and AMD GPU (`amdgpu`). Edit the hwmon names in `shell/temperature/Card.qml` (in the patch) for other hardware.

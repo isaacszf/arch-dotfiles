@@ -1,8 +1,8 @@
 #!/bin/bash
 # Copy the configs from this repo into ~/.config.
 #
-#   ./install.sh                 install everything (niri, sway, i3)
-#   ./install.sh niri sway       install only the ones named
+#   ./install.sh                 install everything (niri, i3)
+#   ./install.sh i3              install only the ones named
 #
 # Anything already there is moved to ~/.config/dotfiles-backup-<timestamp>/ first.
 # For niri, build and install the package (pkgbuild/pond-interface-local) before logging in.
@@ -37,13 +37,6 @@ install_niri() {
     echo "niri installed. Check it with: niri validate"
 }
 
-install_sway() {
-    backup "$CONFIG/sway" sway
-    cp -r "$REPO/config/sway" "$CONFIG/sway"
-    chmod +x "$CONFIG/sway/scripts/"*
-    echo "sway installed. Check it with: sway -C"
-}
-
 install_i3() {
     backup "$CONFIG/i3" i3
     backup "$HOME/.i3blocks.conf" i3blocks.conf
@@ -65,11 +58,11 @@ install_i3() {
 }
 
 targets=("$@")
-[ ${#targets[@]} -eq 0 ] && targets=(niri sway i3)
+[ ${#targets[@]} -eq 0 ] && targets=(niri i3)
 
 for t in "${targets[@]}"; do
     case "$t" in
-        niri|sway|i3) "install_$t" ;;
-        *) echo "usage: $0 [niri] [sway] [i3]" >&2; exit 2 ;;
+        niri|i3) "install_$t" ;;
+        *) echo "usage: $0 [niri] [i3]" >&2; exit 2 ;;
     esac
 done

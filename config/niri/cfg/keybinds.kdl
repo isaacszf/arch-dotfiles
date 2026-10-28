@@ -62,21 +62,22 @@ binds {
     Mod+Shift+CTRL+UP                   { move-column-to-monitor-up; }
     Mod+Shift+CTRL+Down                 { move-column-to-monitor-down; }
 
-    // ─── Workspace Switching ───
-    Mod+WheelScrollDown                 cooldown-ms=10 { focus-workspace-down; }
-    Mod+WheelScrollUp                   cooldown-ms=10 { focus-workspace-up; }
-    Mod+CTRL+WheelScrollDown            cooldown-ms=10 { move-column-to-workspace-down; }
-    Mod+CTRL+WheelScrollUp              cooldown-ms=10 { move-column-to-workspace-up; }
+    // ─── Mouse Wheel ───
+    // Mod: focus column, +Shift: move column, +CTRL: switch workspace, +CTRL+Shift: move column to workspace.
+    Mod+WheelScrollDown                 { focus-column-right; }
+    Mod+WheelScrollUp                   { focus-column-left; }
+    Mod+Shift+WheelScrollDown           { move-column-right; }
+    Mod+Shift+WheelScrollUp             { move-column-left; }
+    Mod+CTRL+WheelScrollDown            cooldown-ms=10 { focus-workspace-down; }
+    Mod+CTRL+WheelScrollUp              cooldown-ms=10 { focus-workspace-up; }
+    Mod+CTRL+Shift+WheelScrollDown      cooldown-ms=10 { move-column-to-workspace-down; }
+    Mod+CTRL+Shift+WheelScrollUp        cooldown-ms=10 { move-column-to-workspace-up; }
 
+    // Horizontal wheel / wheel tilt
     Mod+WheelScrollRight                { focus-column-right; }
     Mod+WheelScrollLeft                 { focus-column-left; }
-    Mod+CTRL+WheelScrollRight           { move-column-right; }
-    Mod+CTRL+WheelScrollLeft            { move-column-left; }
-
-    Mod+Shift+WheelScrollDown           { focus-column-right; }
-    Mod+Shift+WheelScrollUp             { focus-column-left; }
-    Mod+CTRL+Shift+WheelScrollDown      { move-column-right; }
-    Mod+CTRL+Shift+WheelScrollUp        { move-column-left; }
+    Mod+Shift+WheelScrollRight          { move-column-right; }
+    Mod+Shift+WheelScrollLeft           { move-column-left; }
 
     Mod+1                               { focus-workspace 1; }
     Mod+2                               { focus-workspace 2; }
